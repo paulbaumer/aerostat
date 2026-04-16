@@ -2,5 +2,5 @@ spotipy
 python-dotenv
 rapidfuzz
 requests
-beautifulsoup4
+lxml
 python-slugify

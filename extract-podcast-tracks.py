@@ -1,56 +1,14 @@
 import os
 import sys
 import requests
-import subprocess
-from bs4 import BeautifulSoup
+import re
+from lxml import html
 from slugify import slugify
 
-def extract_main_content(html):
-    """Heuristically extracts the main title and body content from HTML."""
-    soup = BeautifulSoup(html, 'html.parser')
-    
-    # Try to find the main title
-    title = soup.find('h1')
-    if not title:
-        title = soup.title
-    
-    title_text = title.get_text().strip() if title else "podcast-episode"
-    
-    # Heuristically remove common navigation and footer elements
-    for element in soup(['nav', 'footer', 'header', 'aside', 'script', 'style']):
-        element.decompose()
-        
-    # Get text from body or main content area if possible
-    body = soup.find('main') or soup.find('article') or soup.body
-    body_text = body.get_text(separator='\n').strip() if body else ""
-    
-    return title_text, body_text
-
-def extract_tracks_with_gemini(text):
-    """Uses the Gemini CLI to extract track mentions from the text."""
-    prompt = (
-        "You are an expert at identifying song mentions in podcast episode descriptions. "
-        "From the following text, extract a list of all songs and artists mentioned. "
-        "Provide the list with one track per line in the format 'Artist - Song Name' or just 'Song Name' if the artist is unknown. "
-        "Do not include any other text, numbers, or bullet points. Only the song list.\n\n"
-        f"Text:\n{text}"
-    )
-    
-    try:
-        # Calling the 'gemini' CLI command
-        process = subprocess.Popen(['gemini', 'ask', prompt], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        stdout, stderr = process.communicate()
-        
-        if process.returncode != 0:
-            print(f"Error calling Gemini CLI: {stderr}")
-            return []
-            
-        # Split output into lines and clean up
-        tracks = [line.strip() for line in stdout.split('\n') if line.strip()]
-        return tracks
-    except Exception as e:
-        print(f"Failed to run Gemini CLI: {e}")
-        return []
+def extract_episode_id(url):
+    """Extracts the episode ID (number) from the URL."""
+    match = re.search(r'(\d+)', url)
+    return match.group(1) if match else "1086"
 
 def main():
     if len(sys.argv) < 2:
@@ -60,32 +18,75 @@ def main():
     url = sys.argv[1]
     print(f"Fetching URL: {url}...")
     
+    headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
     try:
-        response = requests.get(url, timeout=15)
+        response = requests.get(url, headers=headers, timeout=15)
         response.raise_for_status()
     except Exception as e:
         print(f"Error fetching the URL: {e}")
         return
 
-    title, body = extract_main_content(response.text)
-    slug = slugify(title)
+    tree = html.fromstring(response.content)
     
+    episode_id = extract_episode_id(url)
+    
+    # User's provided XPaths
+    content_xpath = f'//*[@id="{episode_id}"]/div/div/div[1]'
+    tracklist_xpath = f'//*[@id="{episode_id}"]/div/div/div[1]/div[1]/div[1]/div[2]/ol'
+    
+    # Try content first
+    content_elements = tree.xpath(content_xpath)
+    if not content_elements:
+        print(f"Warning: Could not find content with XPath {content_xpath}")
+        # Let's try to just find any div with an ID that matches the ID
+        content_elements = tree.xpath(f'//*[@id="{episode_id}"]')
+        
+    if not content_elements:
+        print(f"Error: Could not find content for ID {episode_id}")
+        return
+
+    content_element = content_elements[0]
+    # Get text content from the content element
+    body_text = content_element.text_content().strip()
+    
+    # Find tracks from the ol list
+    tracklist_elements = tree.xpath(tracklist_xpath)
+    tracks = []
+    
+    if tracklist_elements:
+        ol = tracklist_elements[0]
+        # Get all li elements under the ol
+        # We look for direct li or any li inside?
+        # Usually they are direct.
+        li_elements = ol.xpath('.//li')
+        for li in li_elements:
+            # We want the text content, clean up whitespace
+            # Some entries might have nested spans for artist/title
+            track_text = li.text_content().strip()
+            # Clean up potential extra whitespace within the string
+            track_text = ' '.join(track_text.split())
+            if track_text:
+                tracks.append(track_text)
+    else:
+        print(f"Warning: Could not find tracklist with XPath {tracklist_xpath}")
+
+    # Title - let's try to get it from the page
+    title_elements = tree.xpath('//h1/text()')
+    title_text = title_elements[0].strip() if title_elements else f"episode-{episode_id}"
+    
+    slug = slugify(title_text)
     if not slug:
-        slug = "podcast-episode"
+        slug = f"episode-{episode_id}"
 
     # Save body text
     body_filename = f"{slug}.txt"
-    with open(body_filename, 'w') as f:
-        f.write(body)
+    with open(body_filename, 'w', encoding='utf-8') as f:
+        f.write(body_text)
     print(f"Saved body content to {body_filename}")
 
-    # Extract tracks using Gemini
-    print("Extracting tracks using Gemini CLI...")
-    tracks = extract_tracks_with_gemini(body)
-    
     # Save tracklist
     tracklist_filename = f"{slug}-tracklist.txt"
-    with open(tracklist_filename, 'w') as f:
+    with open(tracklist_filename, 'w', encoding='utf-8') as f:
         f.write(f"{url}\n")
         for track in tracks:
             f.write(f"{track}\n")
