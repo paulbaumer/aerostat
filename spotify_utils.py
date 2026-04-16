@@ -4,12 +4,23 @@ from spotipy.oauth2 import SpotifyOAuth
 from rapidfuzz import fuzz
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 def get_spotify_client():
     """Initializes and returns a Spotify client with necessary scopes."""
-    scope = "playlist-modify-public"
-    return Spotify(auth_manager=SpotifyOAuth(scope=scope))
+    scope = "playlist-modify-private"
+    
+    # Strip any potential quotes or whitespace from env vars
+    client_id = os.getenv('SPOTIPY_CLIENT_ID', '').strip().strip("'").strip('"')
+    client_secret = os.getenv('SPOTIPY_CLIENT_SECRET', '').strip().strip("'").strip('"')
+    redirect_uri = os.getenv('SPOTIPY_REDIRECT_URI', '').strip().strip("'").strip('"')
+    
+    return Spotify(auth_manager=SpotifyOAuth(
+        scope=scope,
+        client_id=client_id,
+        client_secret=client_secret,
+        redirect_uri=redirect_uri
+    ))
 
 def search_and_match(sp, query, threshold=80):
     """
@@ -37,7 +48,7 @@ def search_and_match(sp, query, threshold=80):
 def create_playlist_with_tracks(sp, name, track_uris, description):
     """Creates a new playlist and adds tracks in batches."""
     user_id = sp.current_user()['id']
-    playlist = sp.user_playlist_create(user_id, name, public=True, description=description)
+    playlist = sp.user_playlist_create(user_id, name, public=False, description=description)
     playlist_id = playlist['id']
     
     # Spotify limit is 100 tracks per request

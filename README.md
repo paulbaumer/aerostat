@@ -12,7 +12,7 @@ Aerostat is a set of tools to programmatically create Spotify playlists from pod
 2. **Spotify API Credentials:**
    - Go to the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard/).
    - Create a new app.
-   - Set the **Redirect URI** to `http://localhost:8888/callback`.
+   - Set the **Redirect URI** to `http://127.0.0.1:8888/callback`.
    - Copy your **Client ID** and **Client Secret**.
 
 3. **Configure Environment (Secrets):**
@@ -21,7 +21,7 @@ Aerostat is a set of tools to programmatically create Spotify playlists from pod
      ```env
      SPOTIPY_CLIENT_ID='your_client_id_here'
      SPOTIPY_CLIENT_SECRET='your_client_secret_here'
-     SPOTIPY_REDIRECT_URI='http://localhost:8888/callback'
+     SPOTIPY_REDIRECT_URI='http://127.0.0.1:8888/callback'
      ```
    - **Important:** Never commit your `.env` file or share your Client Secret.
 
