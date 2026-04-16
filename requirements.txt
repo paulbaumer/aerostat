@@ -3,4 +3,5 @@ python-dotenv
 rapidfuzz
 requests
 lxml
+html2text
 python-slugify
