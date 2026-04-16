@@ -18,6 +18,8 @@ def main():
 
     # Generate report filename
     base_name = os.path.splitext(input_file)[0]
+    if base_name.endswith('-tracklist'):
+        base_name = base_name[:-len('-tracklist')]
     report_file = f"{base_name}-playlist.txt"
 
     with open(input_file, 'r') as f:
