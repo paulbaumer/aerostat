@@ -1,3 +1,6 @@
 spotipy
 python-dotenv
 rapidfuzz
+requests
+beautifulsoup4
+python-slugify
