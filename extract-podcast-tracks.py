@@ -22,6 +22,8 @@ def fetch_via_api(episode_id):
             data = response.json()
             release = data.get('release', {})
             title = release.get('title', f"episode-{episode_id}")
+            number = release.get('number', episode_id)
+            date = release.get('date', "")
             
             # Extract tracks
             tracks = []
@@ -41,21 +43,21 @@ def fetch_via_api(episode_id):
             h.ignore_links = True
             body_text = h.handle(content_html).strip()
             
-            return title, body_text, tracks
+            return title, body_text, tracks, number, date
     except Exception as e:
         print(f"API fetch failed: {e}")
     
-    return None, None, None
+    return None, None, None, None, None
 
 def fetch_via_xpath(url, episode_id):
-    """Fallback method using XPath (may not work for SPAs without JS execution)."""
+    """Fallback method using XPath."""
     headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
     try:
         response = requests.get(url, headers=headers, timeout=15)
         response.raise_for_status()
     except Exception as e:
         print(f"Error fetching the URL: {e}")
-        return None, None, None
+        return None, None, None, None, None
 
     tree = html.fromstring(response.content)
     
@@ -68,7 +70,7 @@ def fetch_via_xpath(url, episode_id):
         content_elements = tree.xpath(f'//*[@id="{episode_id}"]')
         
     if not content_elements:
-        return None, None, None
+        return None, None, None, None, None
 
     content_element = content_elements[0]
     body_text = content_element.text_content().strip()
@@ -85,7 +87,13 @@ def fetch_via_xpath(url, episode_id):
     title_elements = tree.xpath('//h1/text()')
     title_text = title_elements[0].strip() if title_elements else f"episode-{episode_id}"
     
-    return title_text, body_text, tracks
+    # Simple heuristic for number/date if API failed
+    # User says: "The episode number and date are always in the line right under the title/header"
+    # This is hard to get via static XPath if it's rendered by JS, but we try:
+    number = episode_id
+    date = ""
+    
+    return title_text, body_text, tracks, number, date
 
 def main():
     if len(sys.argv) < 2:
@@ -102,29 +110,43 @@ def main():
     print(f"Attempting to fetch data for episode {episode_id}...")
     
     # Try API first
-    title, body, tracks = fetch_via_api(episode_id)
+    title, body, tracks, number, date = fetch_via_api(episode_id)
     
-    # Fallback to XPath if API fails or returns no tracks (though API is preferred)
+    # Fallback to XPath if API fails or returns no tracks
     if not tracks:
         print("API did not return tracks or failed. Trying XPath fallback...")
-        title, body, tracks = fetch_via_xpath(url, episode_id)
+        title, body, tracks, number, date = fetch_via_xpath(url, episode_id)
 
     if not body and not tracks:
         print(f"Error: Could not extract content for episode {episode_id}")
         return
 
-    slug = slugify(title) if title else f"episode-{episode_id}"
-    if not slug:
-        slug = f"episode-{episode_id}"
+    # Build filename: {episode-number}-{transliterated-name}-{date}
+    # Transliterate title
+    slug_title = slugify(title)
+    slug_date = slugify(date) if date else ""
+    
+    filename_parts = []
+    if number:
+        filename_parts.append(str(number))
+    if slug_title:
+        filename_parts.append(slug_title)
+    if slug_date:
+        filename_parts.append(slug_date)
+    
+    base_filename = "-".join(filename_parts)
+    if not base_filename:
+        base_filename = f"episode-{episode_id}"
 
     # Save body text
-    body_filename = f"{slug}.txt"
+    body_filename = f"{base_filename}.txt"
     with open(body_filename, 'w', encoding='utf-8') as f:
+        f.write(f"{url}\n\n")
         f.write(body if body else "")
     print(f"Saved body content to {body_filename}")
 
     # Save tracklist
-    tracklist_filename = f"{slug}-tracklist.txt"
+    tracklist_filename = f"{base_filename}-tracklist.txt"
     with open(tracklist_filename, 'w', encoding='utf-8') as f:
         f.write(f"{url}\n")
         for track in tracks:
