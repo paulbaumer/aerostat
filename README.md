@@ -37,10 +37,11 @@ python extract-podcast-tracks.py <url>
 ```
 
 **What it does:**
-- Downloads the main body content of the provided URL.
-- Saves the content to a file named after the episode title (e.g., `episode-title.txt`).
-- Uses the Gemini CLI to identify songs mentioned in the text.
-- Saves the identified tracks to `episode-title-tracklist.txt` in a format compatible with the playlist generator.
+- Downloads the main body content of the provided URL using the website's API or XPath fallback.
+- Saves the content to a file with the naming format `{podcast-name}-{episode-number}-{transliterated-title}-{date}.txt`.
+- Includes a header on the first line: `{Podcast Name} - {Number} - {Title} - {Date}` in the original language.
+- Places the source URL on the second line.
+- Extracts tracks and saves them to a similarly named `-tracklist.txt` file.
 
 ### 2. Spotify Playlist Generator (`create-spotify-playlist.py`)
 

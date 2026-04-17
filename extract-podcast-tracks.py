@@ -88,8 +88,6 @@ def fetch_via_xpath(url, episode_id):
     title_text = title_elements[0].strip() if title_elements else f"episode-{episode_id}"
     
     # Simple heuristic for number/date if API failed
-    # User says: "The episode number and date are always in the line right under the title/header"
-    # This is hard to get via static XPath if it's rendered by JS, but we try:
     number = episode_id
     date = ""
     
@@ -121,12 +119,18 @@ def main():
         print(f"Error: Could not extract content for episode {episode_id}")
         return
 
-    # Build filename: {episode-number}-{transliterated-name}-{date}
-    # Transliterate title
+    podcast_name = "Аэростат"
+    # Format: {podcast name} - {episode number} - {episode title} - {date}
+    header_line = f"{podcast_name} - {number} - {title} - {date}"
+
+    # Build filename: {podcast-name}-{episode-number}-{transliterated-title}-{date}
+    slug_podcast = slugify(podcast_name)
     slug_title = slugify(title)
     slug_date = slugify(date) if date else ""
     
     filename_parts = []
+    if slug_podcast:
+        filename_parts.append(slug_podcast)
     if number:
         filename_parts.append(str(number))
     if slug_title:
@@ -141,6 +145,7 @@ def main():
     # Save body text
     body_filename = f"{base_filename}.txt"
     with open(body_filename, 'w', encoding='utf-8') as f:
+        f.write(f"{header_line}\n")
         f.write(f"{url}\n\n")
         f.write(body if body else "")
     print(f"Saved body content to {body_filename}")
@@ -148,6 +153,7 @@ def main():
     # Save tracklist
     tracklist_filename = f"{base_filename}-tracklist.txt"
     with open(tracklist_filename, 'w', encoding='utf-8') as f:
+        f.write(f"{header_line}\n")
         f.write(f"{url}\n")
         for track in tracks:
             f.write(f"{track}\n")
