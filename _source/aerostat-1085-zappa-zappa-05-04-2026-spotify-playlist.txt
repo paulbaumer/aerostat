@@ -1,0 +1,15 @@
+Playlist Name: Аэростат - 1085 - Заппа Заппа - 05.04.2026
+Source URL: https://aerostatbg.ru/release/1085
+Processing Date: 2026-04-16
+--------------------
+MATCHED: Frank Zappa & The Mothers Of Invention – Zombie Woof -> Rolff - Zombie Woof (Confidence: 100.0%)
+MATCHED: Frank Zappa & The Mothers Of Invention – Montana -> Frank Zappa - Montana (Confidence: 100.0%)
+MATCHED: Frank Zappa & The Mothers Of Invention – Sleeping In A Jar -> Frank Zappa - Sleeping In A Jar (Confidence: 100.0%)
+MATCHED: Frank Zappa & The Mothers Of Invention – Duke Of Prunes -> Frank Zappa - The Duke Of Prunes (Confidence: 100.0%)
+MATCHED: Frank Zappa & The Mothers Of Invention – Call Any Vegetable -> Frank Zappa - Call Any Vegetable (Confidence: 100.0%)
+MATCHED: Frank Zappa & The Mothers Of Invention – Camarillo Brillo -> Frank Zappa - Camarillo Brillo (Confidence: 100.0%)
+MATCHED: Frank Zappa – Amnerika Goes Home -> Frank Zappa - Amnerika Goes Home (Confidence: 100.0%)
+MATCHED: Frank Zappa & The Mothers Of Invention – Wonderful Wino -> Frank Zappa - Wonderful Wino (Confidence: 100.0%)
+MATCHED: Frank Zappa & The Mothers Of Invention – You're Probably Wondering Why I'm Here -> The Mothers Of Invention - You're Probably Wondering Why I'm Here (Confidence: 100.0%)
+MATCHED: Frank Zappa – Jazz From Hell -> Frank Zappa - Jazz From Hell (Confidence: 100.0%)
+MATCHED: Frank Zappa – Harder Than Your Husband -> Frank Zappa - Harder Than Your Husband (Confidence: 100.0%)

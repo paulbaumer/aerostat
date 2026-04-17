@@ -16,11 +16,14 @@ def main():
         print(f"Error: {input_file} not found.")
         return
 
-    # Generate report filename
-    base_name = os.path.splitext(input_file)[0]
+    # Generate report filename in _source directory
+    file_name = os.path.basename(input_file)
+    base_name = os.path.splitext(file_name)[0]
     if base_name.endswith('-tracklist'):
         base_name = base_name[:-len('-tracklist')]
-    report_file = f"{base_name}-spotify-playlist.txt"
+    
+    os.makedirs("_source", exist_ok=True)
+    report_file = os.path.join("_source", f"{base_name}-spotify-playlist.txt")
 
     with open(input_file, 'r') as f:
         lines = [line.strip() for line in f if line.strip()]

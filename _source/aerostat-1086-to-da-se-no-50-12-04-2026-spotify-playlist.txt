@@ -1,0 +1,13 @@
+Playlist Name: Аэростат - 1086 - То да Сё № 50 - 12.04.2026
+Source URL: https://aerostatbg.ru/release/1086
+Processing Date: 2026-04-16
+--------------------
+MATCHED: Paul McCartney – Days We Left Behind -> Paul McCartney - Days We Left Behind (Confidence: 100.0%)
+MATCHED: Neil Sedaka – Breaking Up Is Hard To Do -> Neil Sedaka - Breaking Up Is Hard To Do (Confidence: 100.0%)
+MATCHED: Kate Rusby – High On A Hill -> Kate Rusby - High on a Hill (Confidence: 100.0%)
+MATCHED: Bob Dylan – Things Have Changed -> Bob Dylan - Things Have Changed - Single Version (Confidence: 100.0%)
+MATCHED: Мистерията на българските гласове – Калиманку, Денку -> Folk Songs Ensemble of the Bulgarian National Radio - Калиманку, Денку (Kalimanku, Denku) (Confidence: 100.0%)
+MATCHED: Ian Brown – The Sweet Fantastic -> Ian Brown - The Sweet Fantastic (Confidence: 100.0%)
+MATCHED: Аквариум – Ключи от моих дверей -> CRASPORE - Аквариум (Confidence: 100.0%)
+MATCHED: Sleaford Mods feat. Aldous Harding – Elitest G.O.A.T. (The Prodigy Acid Thunder Remix) -> Sleaford Mods - Elitest G.O.A.T. (Confidence: 100.0%)
+MATCHED: Herb Alpert & The Tijuana Brass – Whipped Cream -> Herb Alpert & The Tijuana Brass - Whipped Cream (Confidence: 100.0%)

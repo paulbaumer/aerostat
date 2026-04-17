@@ -142,8 +142,11 @@ def main():
     if not base_filename:
         base_filename = f"episode-{episode_id}"
 
+    # Save results to _source directory
+    os.makedirs("_source", exist_ok=True)
+    
     # Save body text
-    body_filename = f"{base_filename}.txt"
+    body_filename = os.path.join("_source", f"{base_filename}.txt")
     with open(body_filename, 'w', encoding='utf-8') as f:
         f.write(f"{header_line}\n")
         f.write(f"{url}\n\n")
@@ -151,7 +154,7 @@ def main():
     print(f"Saved body content to {body_filename}")
 
     # Save tracklist
-    tracklist_filename = f"{base_filename}-tracklist.txt"
+    tracklist_filename = os.path.join("_source", f"{base_filename}-tracklist.txt")
     with open(tracklist_filename, 'w', encoding='utf-8') as f:
         f.write(f"{header_line}\n")
         f.write(f"{url}\n")
