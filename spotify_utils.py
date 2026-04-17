@@ -8,7 +8,7 @@ load_dotenv(override=True)
 
 def get_spotify_client():
     """Initializes and returns a Spotify client with necessary scopes."""
-    scope = "playlist-modify-private"
+    scope = "playlist-modify-private playlist-modify-public user-read-email"
     
     # Strip any potential quotes or whitespace from env vars
     client_id = os.getenv('SPOTIPY_CLIENT_ID', '').strip().strip("'").strip('"')
@@ -47,8 +47,31 @@ def search_and_match(sp, query, threshold=80):
 
 def create_playlist_with_tracks(sp, name, track_uris, description):
     """Creates a new playlist and adds tracks in batches."""
-    user_id = sp.current_user()['id']
-    playlist = sp.user_playlist_create(user_id, name, public=False, description=description)
+    auth_manager = sp.auth_manager
+    token = auth_manager.get_access_token(as_dict=False)
+    
+    # Try POST to /me/playlists which worked in raw test
+    url = "https://api.spotify.com/v1/me/playlists"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "name": name,
+        "public": False,
+        "description": description
+    }
+    
+    import requests
+    response = requests.post(url, headers=headers, json=data)
+    if response.status_code not in [200, 201]:
+        print(f"Error creating playlist: {response.status_code} - {response.text}")
+        # Try fallback to standard spotipy method
+        user_id = sp.me()['id']
+        playlist = sp.user_playlist_create(user_id, name, public=False, description=description)
+    else:
+        playlist = response.json()
+        
     playlist_id = playlist['id']
     
     # Spotify limit is 100 tracks per request

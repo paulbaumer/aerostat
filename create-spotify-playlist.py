@@ -59,7 +59,7 @@ def main():
 
     # Prepare playlist metadata
     playlist_name = f"Podcast Mentions - {datetime.date.today()}"
-    description = f"Source: {source_url}\nFound {matches_count}/{total_count} tracks. See local {report_file} for details."
+    description = f"Source: {source_url} | Found {matches_count}/{total_count} tracks. See local {report_file} for details."
     
     if found_uris:
         print(f"Creating playlist: {playlist_name}...")
