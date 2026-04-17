@@ -1,4 +1,5 @@
 import os
+import re
 from spotipy import Spotify
 from spotipy.oauth2 import SpotifyOAuth
 from rapidfuzz import fuzz
@@ -22,28 +23,77 @@ def get_spotify_client():
         redirect_uri=redirect_uri
     ))
 
-def search_and_match(sp, query, threshold=80):
+def clean_string(text):
+    """Removes common noise from song/artist strings for better matching."""
+    if not text:
+        return ""
+    # Remove contents of parentheses/brackets and common noise words
+    text = re.sub(r'[\(\[][^\]\)]*[\)\]]', '', text)
+    text = re.sub(r'\b(feat|ft|remix|edit|original|mix|version|remastered|remaster)\b', '', text, flags=re.IGNORECASE)
+    # Remove special characters except spaces
+    text = re.sub(r'[^\w\s-]', '', text)
+    return ' '.join(text.split()).lower()
+
+def search_and_match(sp, query, threshold=65):
     """
-    Searches Spotify for a query and uses fuzzy matching to find the best track.
-    Returns (track_uri, track_name, artist_name, score) or (None, None, None, 0).
+    Enhanced multi-stage search and matching logic.
     """
-    results = sp.search(q=query, limit=5, type='track')
-    items = results.get('tracks', {}).get('items', [])
+    # 1. Prepare query variations
+    clean_q = clean_string(query)
+    search_queries = [query, clean_q]
+    
+    # If there's a dash, try searching for parts
+    if '–' in query or '-' in query:
+        parts = re.split(r'–|-', query)
+        if len(parts) >= 2:
+            artist_part = clean_string(parts[0])
+            song_part = clean_string(parts[1])
+            search_queries.append(f"{artist_part} {song_part}")
+            search_queries.append(song_part) # Broad search
     
     best_match = (None, None, None, 0)
-    
-    for item in items:
-        track_name = item['name']
-        artist_name = item['artists'][0]['name']
-        full_name = f"{artist_name} {track_name}"
+    seen_uris = set()
+
+    for q in search_queries:
+        if not q or len(q) < 3: continue
         
-        # Calculate similarity score
-        score = fuzz.token_sort_ratio(query.lower(), full_name.lower())
-        
-        if score >= threshold and score > best_match[3]:
-            best_match = (item['uri'], track_name, artist_name, score)
+        try:
+            results = sp.search(q=q, limit=10, type='track')
+            items = results.get('tracks', {}).get('items', [])
+        except Exception:
+            continue
+
+        for item in items:
+            uri = item['uri']
+            if uri in seen_uris: continue
+            seen_uris.add(uri)
+
+            track_name = item['name']
+            artist_name = item['artists'][0]['name']
             
-    return best_match
+            # Match against multiple combinations
+            targets = [
+                f"{artist_name} {track_name}",
+                f"{track_name} {artist_name}",
+                track_name
+            ]
+            
+            item_scores = [
+                fuzz.token_set_ratio(clean_q, clean_string(t)) for t in targets
+            ]
+            score = max(item_scores)
+            
+            if score > best_match[3]:
+                best_match = (uri, track_name, artist_name, score)
+                
+            # Early exit for perfect match
+            if score >= 95:
+                return best_match
+
+    if best_match[3] >= threshold:
+        return best_match
+        
+    return (None, None, None, 0)
 
 def create_playlist_with_tracks(sp, name, track_uris, description):
     """Creates a new playlist and adds tracks in batches."""
