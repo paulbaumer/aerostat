@@ -9,7 +9,7 @@ load_dotenv(override=True)
 
 def get_spotify_client():
     """Initializes and returns a Spotify client with necessary scopes."""
-    scope = "playlist-modify-private playlist-modify-public user-read-email"
+    scope = "playlist-modify-private playlist-modify-public user-read-email playlist-read-private playlist-read-collaborative"
     
     # Strip any potential quotes or whitespace from env vars
     client_id = os.getenv('SPOTIPY_CLIENT_ID', '').strip().strip("'").strip('"')
@@ -96,37 +96,58 @@ def search_and_match(sp, query, threshold=65):
     return (None, None, None, 0)
 
 def create_playlist_with_tracks(sp, name, track_uris, description):
-    """Creates a new playlist and adds tracks in batches."""
+    """Creates a new playlist or updates an existing one with the same name."""
     auth_manager = sp.auth_manager
     token = auth_manager.get_access_token(as_dict=False)
-    
-    # Try POST to /me/playlists which worked in raw test
-    url = "https://api.spotify.com/v1/me/playlists"
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
     }
-    data = {
-        "name": name,
-        "public": False,
-        "description": description
-    }
-    
     import requests
-    response = requests.post(url, headers=headers, json=data)
-    if response.status_code not in [200, 201]:
-        print(f"Error creating playlist: {response.status_code} - {response.text}")
-        # Try fallback to standard spotipy method
-        user_id = sp.me()['id']
-        playlist = sp.user_playlist_create(user_id, name, public=False, description=description)
+
+    # 1. Search for existing playlist by name
+    playlist_id = None
+    try:
+        user_playlists = sp.current_user_playlists()
+        while user_playlists:
+            for playlist in user_playlists['items']:
+                if playlist['name'] == name:
+                    playlist_id = playlist['id']
+                    print(f"Found existing playlist: {name} (ID: {playlist_id}). Updating...")
+                    break
+            if playlist_id or not user_playlists['next']:
+                break
+            user_playlists = sp.next(user_playlists)
+    except Exception as e:
+        print(f"Warning: Could not search existing playlists ({e})")
+
+    if not playlist_id:
+        # 2. Create new playlist if not found
+        url = "https://api.spotify.com/v1/me/playlists"
+        data = {"name": name, "public": False, "description": description}
+        response = requests.post(url, headers=headers, json=data)
+        if response.status_code not in [200, 201]:
+            print(f"Error creating playlist: {response.status_code} - {response.text}")
+            user_id = sp.me()['id']
+            playlist = sp.user_playlist_create(user_id, name, public=False, description=description)
+        else:
+            playlist = response.json()
+        playlist_id = playlist['id']
+        playlist_url = playlist['external_urls']['spotify']
     else:
-        playlist = response.json()
+        # 3. Update existing: Clear tracks first
+        # Spotify limit for clearing is 100, but easier to just replace all
+        # We'll use playlist_replace_items which replaces all tracks in one go
+        # Note: it only supports up to 100 at a time, so we'll replace with first 100
+        # and then add the rest.
+        sp.playlist_replace_items(playlist_id, track_uris[:100])
+        if len(track_uris) > 100:
+            for i in range(100, len(track_uris), 100):
+                batch = track_uris[i:i+100]
+                sp.playlist_add_items(playlist_id, batch)
         
-    playlist_id = playlist['id']
-    
-    # Spotify limit is 100 tracks per request
-    for i in range(0, len(track_uris), 100):
-        batch = track_uris[i:i+100]
-        sp.playlist_add_items(playlist_id, batch)
-        
-    return playlist['external_urls']['spotify']
+        # Update description just in case
+        sp.playlist_change_details(playlist_id, description=description)
+        playlist_url = f"https://open.spotify.com/playlist/{playlist_id}"
+
+    return playlist_url

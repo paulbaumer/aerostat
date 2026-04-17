@@ -1,13 +1,16 @@
-# Environment variables
-.env
+# Jekyll / Ruby
+.jekyll-cache/
+_site/
+vendor/
+.bundle/
+Gemfile.lock
 
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
-venv/
-.venv/
-
-# Spotify Token Cache
+.env
 .cache
-.cache-*
+
+# MacOS
+.DS_Store

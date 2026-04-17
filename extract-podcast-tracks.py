@@ -93,17 +93,29 @@ def fetch_via_xpath(url, episode_id):
     
     return title_text, body_text, tracks, number, date
 
-def main():
-    if len(sys.argv) < 2:
-        print("Usage: python extract-podcast-tracks.py <url>")
-        return
+import argparse
 
-    url = sys.argv[1]
+def main():
+    parser = argparse.ArgumentParser(description="Extract tracks from a podcast episode URL.")
+    parser.add_argument("url", help="The URL of the podcast episode.")
+    parser.add_argument("--force", action="store_true", help="Overwrite existing files in _source.")
+    args = parser.parse_args()
+
+    url = args.url
     episode_id = extract_episode_id(url)
     
     if not episode_id:
         print("Could not determine episode ID from URL.")
         return
+
+    # Check if we should skip based on existing files
+    # We don't know the full filename yet, but we can check for the ID pattern
+    os.makedirs("_source", exist_ok=True)
+    if not args.force:
+        existing_files = [f for f in os.listdir("_source") if f.startswith(f"{episode_id}-") or f.startswith(f"aerostat-{episode_id}-")]
+        if any(f.endswith(".txt") for f in existing_files):
+            print(f"Episode {episode_id} already processed in _source. Use --force to overwrite.")
+            return
 
     print(f"Attempting to fetch data for episode {episode_id}...")
     

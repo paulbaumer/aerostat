@@ -1,0 +1,15 @@
+title: Aerostat Playlist Toolkit
+description: Minimalistic Spotify Playlist aggregator for Aerostat podcasts
+baseurl: ""
+url: "https://paulbaumer.github.io"
+collections:
+  episodes:
+    output: true
+    permalink: /episodes/:path/
+
+defaults:
+  - scope:
+      path: ""
+      type: "episodes"
+    values:
+      layout: "episode"

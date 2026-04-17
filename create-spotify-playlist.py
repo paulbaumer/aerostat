@@ -1,27 +1,38 @@
 import os
 import sys
 import datetime
+import re
 from spotify_utils import get_spotify_client, search_and_match, create_playlist_with_tracks
 from dotenv import load_dotenv
+
+import argparse
 
 def main():
     load_dotenv()
     
-    if len(sys.argv) < 2:
-        print("Usage: python main.py <input_file>")
-        return
+    parser = argparse.ArgumentParser(description="Create a Spotify playlist from a tracklist file.")
+    parser.add_argument("input_file", help="The tracklist file (e.g., _source/episode-tracklist.txt)")
+    parser.add_argument("--force", action="store_true", help="Overwrite existing Jekyll pages and playlists.")
+    args = parser.parse_args()
 
-    input_file = sys.argv[1]
+    input_file = args.input_file
     if not os.path.exists(input_file):
         print(f"Error: {input_file} not found.")
         return
 
-    # Generate report filename in _source directory
+    # Generate base name to check for existing Jekyll page
     file_name = os.path.basename(input_file)
     base_name = os.path.splitext(file_name)[0]
     if base_name.endswith('-tracklist'):
         base_name = base_name[:-len('-tracklist')]
     
+    # Check if we should skip
+    md_filename = os.path.join("_episodes", f"{base_name}.md")
+    if not args.force and os.path.exists(md_filename):
+        print(f"Jekyll page {md_filename} already exists. Use --force to re-process.")
+        return
+
+    # Generate report filename in _source directory
     os.makedirs("_source", exist_ok=True)
     report_file = os.path.join("_source", f"{base_name}-spotify-playlist.txt")
 
@@ -73,6 +84,43 @@ def main():
         print(f"Creating playlist: {playlist_name}...")
         playlist_url = create_playlist_with_tracks(sp, playlist_name, found_uris, description)
         print(f"Success! Playlist created: {playlist_url}")
+        
+        # --- Generate Jekyll Markdown File ---
+        os.makedirs("_episodes", exist_ok=True)
+        # Extract spotify_id from URL
+        spotify_id = playlist_url.split('/')[-1]
+        
+        # Find corresponding description file to get content
+        # Base filename was used for report_file, reuse for markdown
+        md_filename = os.path.join("_episodes", f"{base_name}.md")
+        
+        # Read content from the .txt description file if it exists
+        content = ""
+        desc_file = os.path.join("_source", f"{base_name}.txt")
+        if os.path.exists(desc_file):
+            with open(desc_file, 'r', encoding='utf-8') as df:
+                # Skip first two lines (header and URL)
+                content_lines = df.readlines()[2:]
+                content = "".join(content_lines).strip()
+
+        # Date for Jekyll frontmatter
+        # Try to extract date from the header (lines[0]) which is 'Аэростат - 1086 - Title - 12.04.2026'
+        date_str = datetime.date.today().strftime("%Y-%m-%d")
+        date_match = re.search(r'(\d{2})\.(\d{2})\.(\d{4})', playlist_name)
+        if date_match:
+            d, m, y = date_match.groups()
+            date_str = f"{y}-{m}-{d}"
+
+        with open(md_filename, 'w', encoding='utf-8') as mf:
+            mf.write("---\n")
+            mf.write(f"title: \"{playlist_name}\"\n")
+            mf.write(f"source_url: \"{source_url}\"\n")
+            mf.write(f"spotify_id: \"{spotify_id}\"\n")
+            mf.write(f"date: {date_str}\n")
+            mf.write("---\n\n")
+            mf.write(content)
+        
+        print(f"Jekyll page generated: {md_filename}")
     else:
         print("No tracks found. Playlist was not created.")
 
